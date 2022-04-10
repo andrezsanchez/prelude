@@ -1,16 +1,17 @@
 'use strict';
 
-const startElement = document.getElementById('start');
-
-let context = null;
-let audio = null;
-
 function mod(x, n) {
   return ((x % n) + n) % n;
 }
 
 const diatonicDiff = [2, 2, 1, 2, 2, 2, 1];
 
+/**
+ * Create a diatonic scale for a given mode. Mode 0 is the Ionian mode.
+ *
+ * @param {number} mode 
+ * @returns {[number, number, number, number, number, number, number]}
+ */
 function makeScale(mode) {
   const scale = [];
   let note = 0;
@@ -48,6 +49,46 @@ function line(a) {
   return [a[0], a[1], a[2], a[3], a[4], a[2], a[3], a[4]];
 }
 
+function createPrelude(key) {
+  const dominant4 = (note) => key(note - 3) + 5;
+  const dominant5 = (note) => key(note - 4) + 7;
+  const minor2 = (note) => minorHarm(note - 1) + 2;
+  const minor3 = (note) => minorHarm(note - 2) + 3;
+  const dominant7 = (note) => key(note - 6) + 11;
+
+  const prelude = [
+    [[0, 2, 4, 7, 9], key],
+    [[0, 1, 5, 8, 10], key],
+    [[-1, 1, 4, 8, 10], key],
+    [[0, 2, 4, 7, 9], key],
+    [[0, 2, 5, 9, 12], key],
+    [[0, 1, 3, 5, 8], dominant5],
+    [[-1, 1, 4, 8, 11], key],
+    [[-1, 0, 2, 4, 7], key],
+    [[-2, 0, 2, 4, 7], key],
+    [[-6, -4, 1, 3, 7], dominant5],
+    [[-3, -1, 1, 4, 6], key],
+    [[-3, -1, 2, 4, 7], minor2],
+    [[-4, -2, 1, 5, 8], key],
+    [[-4, -2, 1, 3, 7], minor3], // 0:49
+    [[-5, -3, 0, 4, 7], key],
+    [[-5, -4, -2, 0, 3], key], // 0:56
+    [[-6, -4, -2, 0, 3], key],
+    [[-10, -6, -3, -1, 3], key],
+    [[0, 2, 4, 7, 9].map(x => x - 7), key],
+    [[-7, -3, -1, 0, 2], dominant4],
+    [[-11, -4, -2, 0, 2], key], //1:15
+    //[[-11, -7, -2, 0, 2].map(key), key],
+  ].flatMap(x => twice(line(x[0].map(x[1]))));
+
+  return prelude;
+}
+
+const startElement = document.getElementById('start');
+
+let context = null;
+let audio = null;
+
 function start() {
   if (!context) {
     context = new AudioContext();
@@ -84,53 +125,14 @@ function start() {
     audio.state = 'transition';
     //audio.o.stop();
     //audio = null;
-
+    startElement.textContent = 'Start';
+    
   } else {
     const o = context.createOscillator();
     //o.type = 'triangle';
     setPeriodicWave(o);
 
-    const s = [0, 2, 1, 3, 2, 4, 3, 5, 4, 6, 5, 7, 6, 8, 7];
-    const s2 = [0, -1, 1, 0, 2, 1, 3, 2, 4, 3, 5, 4, 6, 5, 7].reverse();
-
-    //const key = mode;
-    //const key = minor;
-    const key = major;
-    const dominant4 = (note) => key(note - 3) + 5;
-    const dominant5 = (note) => key(note - 4) + 7;
-    const minor2 = (note) => minorHarm(note - 1) + 2;
-    const minor3 = (note) => minorHarm(note - 2) + 3;
-    const dominant7 = (note) => key(note - 6) + 11;
-
-    ////const v1 = [0, 2, 4, 7, 9, 4, 7, 9].map(key);
-
-    const prelude = [
-      [[0, 2, 4, 7, 9], key],
-      [[0, 1, 5, 8, 10], key],
-      [[-1, 1, 4, 8, 10], key],
-      [[0, 2, 4, 7, 9], key],
-      [[0, 2, 5, 9, 12], key],
-      [[0, 1, 3, 5, 8], dominant5],
-      [[-1, 1, 4, 8, 11], key],
-      [[-1, 0, 2, 4, 7], key],
-      [[-2, 0, 2, 4, 7], key],
-      [[-6, -4, 1, 3, 7], dominant5],
-      [[-3, -1, 1, 4, 6], key],
-      [[-3, -1, 2, 4, 7], minor2],
-      [[-4, -2, 1, 5, 8], key],
-      [[-4, -2, 1, 3, 7], minor3], // 0:49
-      [[-5, -3, 0, 4, 7], key],
-      [[-5, -4, -2, 0, 3], key], // 0:56
-      [[-6, -4, -2, 0, 3], key],
-      [[-10, -6, -3, -1, 3], key],
-      [[0, 2, 4, 7, 9].map(x => x - 7), key],
-      [[-7, -3, -1, 0, 2], dominant4],
-      [[-11, -4, -2, 0, 2], key], //1:15
-      //[[-11, -7, -2, 0, 2].map(key), key],
-    ].flatMap(x => twice(line(x[0].map(x[1]))));
-
-    const song = prelude;
-    console.log([...[-3, -1, 2, 4].map(minor2), 13]);
+    const song = createPrelude(major);
 
     //const noteLength = 1 / 16;
     //const noteLength = 1 / 4;
@@ -155,8 +157,9 @@ function start() {
       g,
       state: 'on',
     };
+
+    startElement.textContent = 'Stop';
   }
 }
 
 startElement.addEventListener('click', start);
-
